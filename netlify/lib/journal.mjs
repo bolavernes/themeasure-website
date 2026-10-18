@@ -1,5 +1,7 @@
 /* THE MEASURE – Journal-Bot: gemeinsame Bausteine (Telegram, GitHub, Speicher) */
 import { getStore } from "@netlify/blobs";
+import { purgeCache } from "@netlify/functions";
+import { seed } from "./templates.generated.mjs";
 
 export const env = (k, d = "") => {
   try { const v = globalThis.Netlify && globalThis.Netlify.env && globalThis.Netlify.env.get(k); if (v) return v; } catch (e) {}
@@ -30,51 +32,32 @@ export async function downloadTelegramFile(fileId) {
   return { bytes: new Uint8Array(await r.arrayBuffer()), ext: ["jpg", "png", "webp"].includes(ext) ? ext : "jpg" };
 }
 
-/* ---------- GitHub: ein Commit pro Änderung, danach baut Netlify die Seite neu ---------- */
-async function gh(path, init = {}) {
-  const r = await fetch(`https://api.github.com/repos/${env("GITHUB_REPO")}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${env("GITHUB_TOKEN")}`,
-      accept: init.accept || "application/vnd.github+json",
-      "user-agent": "themeasure-journal-bot",
-      "x-github-api-version": "2022-11-28",
-      ...(init.body ? { "content-type": "application/json" } : {})
-    }
-  });
-  if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 160)}`);
-  return init.accept === "application/vnd.github.raw+json" ? r.text() : r.json();
-}
-
-export async function readPosts() {
-  const raw = await gh(`/contents/content/posts.json?ref=${env("GITHUB_BRANCH", "main")}`, { accept: "application/vnd.github.raw+json" });
-  const data = JSON.parse(raw);
+/* ---------- Inhalte: liegen in Netlify Blobs, Änderungen sind sofort live (kein Deploy) ---------- */
+export async function loadPosts() {
+  const d = await store().get("posts", { type: "json" });
+  const data = d && Array.isArray(d.posts) ? d : JSON.parse(JSON.stringify(seed));
   data.posts = data.posts || [];
   return data;
 }
 
-function toBase64(bytes) {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(s);
+// Speichert die Beiträge und leert den Cache für alle Journal-Seiten
+export async function savePosts(data) {
+  await store().setJSON("posts", data);
+  await purge();
 }
 
-export async function commit(files, message) {
-  const branch = env("GITHUB_BRANCH", "main");
-  const ref = await gh(`/git/ref/heads/${branch}`);
-  const parent = ref.object.sha;
-  const base = await gh(`/git/commits/${parent}`);
-  const tree = [];
-  for (const f of files) {
-    if (f.delete) { tree.push({ path: f.path, mode: "100644", type: "blob", sha: null }); continue; }
-    const blob = await gh("/git/blobs", { method: "POST", body: JSON.stringify(f.bytes ? { content: toBase64(f.bytes), encoding: "base64" } : { content: f.content, encoding: "utf-8" }) });
-    tree.push({ path: f.path, mode: "100644", type: "blob", sha: blob.sha });
-  }
-  const newTree = await gh("/git/trees", { method: "POST", body: JSON.stringify({ base_tree: base.tree.sha, tree }) });
-  const c = await gh("/git/commits", { method: "POST", body: JSON.stringify({ message, tree: newTree.sha, parents: [parent] }) });
-  await gh(`/git/refs/heads/${branch}`, { method: "PATCH", body: JSON.stringify({ sha: c.sha }) });
+export async function purge() {
+  try { await purgeCache({ tags: ["journal"] }); } catch (e) { console.error("purge", e); }
 }
-export const postsFile = (data) => ({ path: "content/posts.json", content: JSON.stringify(data, null, 2) + "\n" });
+
+const TYPES = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" };
+export async function saveMedia(src, bytes, ext) {
+  const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  await store().set("media/" + src.replace(/^\/media\//, ""), buf, { metadata: { contentType: TYPES[ext] || "image/jpeg" } });
+}
+export async function deleteMedia(src) {
+  if (src && src.startsWith("/media/")) await store().delete("media/" + src.slice(7));
+}
 
 /* ---------- Text ---------- */
 export function splitText(raw) {

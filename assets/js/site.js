@@ -176,6 +176,19 @@
     observe("[data-shutter]", "is-in", "0px 0px -8% 0px", true);
   }
 
+  /* ---------- Neueste Journal-Beiträge live nachladen (auf Netlify, ohne Deploy) ---------- */
+  var jc = document.querySelector("[data-journal-cards]");
+  if (jc && window.fetch) {
+    fetch("/api/journal.json", { headers: { accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.count) return;
+        jc.innerHTML = d.html;
+        jc.querySelectorAll("[data-reveal]").forEach(function (e) { e.classList.add("is-in"); });
+      })
+      .catch(function () {});
+  }
+
   if (!motion) {
     document.querySelectorAll(".lines").forEach(function (e) { e.classList.add("is-in"); });
     return;

@@ -8,9 +8,10 @@
  *   Löschen    /liste → Beitrag → „Löschen“ → bestätigen
  *
  * Läuft als Netlify Background Function: Telegram bekommt sofort eine Antwort, die Arbeit läuft danach.
+ * Beiträge und Fotos liegen in Netlify Blobs und sind sofort online, ohne neuen Deploy.
  */
 import {
-  env, store, tg, send, edit, downloadTelegramFile, readPosts, commit, postsFile,
+  env, store, tg, send, edit, downloadTelegramFile, loadPosts, savePosts, saveMedia, deleteMedia,
   splitText, slugify, viennaNow, imageSize
 } from "../lib/journal.mjs";
 
@@ -114,7 +115,7 @@ async function showPreview(chat, items) {
   let head, buttons;
 
   if (meta.target) {
-    const data = await readPosts();
+    const data = await loadPosts();
     const post = data.posts.find((p) => p.slug === meta.target);
     head = `Änderung für „${post ? post.title : meta.target}“\n`
       + (allText ? `Neuer Titel: ${title}\nNeuer Text: ${body ? short(body) : "(nur Titel)"}\n` : "Text bleibt gleich.\n")
@@ -156,11 +157,11 @@ async function onButton(cq) {
     const result = meta.target ? await applyChange(meta.target, items) : await publishNew(items);
     await clearDraft(chat);
     await edit(chat, mid, meta.target ? "Änderung übernommen." : "Veröffentlicht.");
-    return confirm(chat, result.slug, result.title, meta.target ? "Geändert. In etwa einer Minute ist es online:" : "Online in etwa einer Minute:");
+    return confirm(chat, result.slug, result.title, meta.target ? "Geändert, schon online:" : "Ist online:");
   }
 
   if (action === "post") {
-    const data = await readPosts();
+    const data = await loadPosts();
     const p = data.posts.find((x) => x.slug === slug);
     if (!p) return edit(chat, mid, "Diesen Beitrag gibt es nicht mehr.");
     return send(chat, `${p.title}\n${p.date}\n${postUrl(p.slug)}`, [[["Bearbeiten", `edit:${p.slug}`], ["Löschen", `del:${p.slug}`]], [["Ansehen", postUrl(p.slug)]]]);
@@ -177,13 +178,13 @@ async function onButton(cq) {
   }
 
   if (action === "delok") {
-    const data = await readPosts();
+    const data = await loadPosts();
     const post = data.posts.find((p) => p.slug === slug);
     if (!post) return edit(chat, mid, "Diesen Beitrag gibt es schon nicht mehr.");
     data.posts = data.posts.filter((p) => p.slug !== slug);
-    const files = [postsFile(data), ...(post.images || []).filter((im) => im.src.startsWith("/media/")).map((im) => ({ path: "content" + im.src, delete: true }))];
-    await commit(files, `Journal: „${post.title}“ gelöscht`);
-    return edit(chat, mid, `Gelöscht: „${post.title}“. In etwa einer Minute ist der Beitrag von der Website verschwunden.`);
+    await savePosts(data);
+    for (const im of post.images || []) await deleteMedia(im.src);
+    return edit(chat, mid, `Gelöscht: „${post.title}“. Der Beitrag ist von der Website verschwunden.`);
   }
 }
 
@@ -211,7 +212,7 @@ async function command(text, chat) {
   }
   if (cmd === "/neu" || cmd === "/abbrechen") { await clearDraft(chat); return send(chat, "Alles zurückgesetzt. Schick mir Fotos und Text für einen neuen Beitrag."); }
   if (cmd === "/liste") {
-    const data = await readPosts();
+    const data = await loadPosts();
     const posts = data.posts.slice().sort((a, b) => (b.date + (b.time || "")).localeCompare(a.date + (a.time || ""))).slice(0, 12);
     if (!posts.length) return send(chat, "Noch keine Beiträge. Schick mir Fotos und Text für den ersten.");
     return send(chat, "Welchen Beitrag?", posts.map((p) => [[`${p.date.slice(8, 10)}.${p.date.slice(5, 7)}.  ${p.title}`.slice(0, 60), `post:${p.slug}`]]));
@@ -221,43 +222,43 @@ async function command(text, chat) {
 
 /* ================================================================ Schreiben */
 
-async function photosToFiles(items, slug, startAt, title) {
-  const files = [], images = [];
+async function savePhotos(items, slug, startAt, title) {
+  const images = [];
   let k = startAt;
   for (const it of items.filter((i) => i.photo)) {
     const { bytes, ext } = await downloadTelegramFile(it.photo.file_id);
     const src = `/media/${slug}/${k}-${Date.now().toString(36)}.${ext}`;
-    files.push({ path: "content" + src, bytes });
+    await saveMedia(src, bytes, ext);
     const size = it.photo.width ? { width: it.photo.width, height: it.photo.height } : imageSize(bytes);
     images.push({ src, width: size.width || 1600, height: size.height || 1067, alt: k === 1 ? title : `${title}, Bild ${k}` });
     k++;
   }
-  return { files, images };
+  return images;
 }
 
 async function publishNew(items) {
   const { title: t, body } = splitText(items.map((i) => i.text).filter(Boolean).join("\n\n"));
   const now = viennaNow();
   const title = t || `Eindrücke vom ${now.date.split("-").reverse().join(".")}`;
-  const data = await readPosts();
+  const data = await loadPosts();
   let slug = slugify(title) || `beitrag-${now.date}`, n = 2;
   const base = slug;
   while (data.posts.some((p) => p.slug === slug)) slug = `${base}-${n++}`;
-  const { files, images } = await photosToFiles(items, slug, 1, title);
+  const images = await savePhotos(items, slug, 1, title);
   data.posts.unshift({ slug, title, date: now.date, time: now.time, body, images, source: "telegram" });
-  await commit([...files, postsFile(data)], `Journal: ${title}`);
+  await savePosts(data);
   return { slug, title };
 }
 
 async function applyChange(slug, items) {
-  const data = await readPosts();
+  const data = await loadPosts();
   const post = data.posts.find((p) => p.slug === slug);
   if (!post) throw new Error("Diesen Beitrag gibt es nicht mehr.");
   const allText = items.map((i) => i.text).filter(Boolean).join("\n\n");
   if (allText) { const { title, body } = splitText(allText); post.title = title || post.title; post.body = body; }
-  const { files, images } = await photosToFiles(items, slug, (post.images || []).length + 1, post.title);
+  const images = await savePhotos(items, slug, (post.images || []).length + 1, post.title);
   post.images = [...(post.images || []), ...images];
   post.updated = viennaNow().date;
-  await commit([...files, postsFile(data)], `Journal: „${post.title}“ geändert`);
+  await savePosts(data);
   return { slug, title: post.title };
 }

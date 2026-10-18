@@ -7,8 +7,8 @@ src/            Seiten (index, impressum, datenschutz, 404)
 partials/       Header, Footer, Logo-Sprite (aus den Original-SVGs)
 assets/         CSS, JS (GSAP, ScrollTrigger, Lenis – selbst gehostet), Schriften (WOFF2), Bilder
 static/         Favicon, robots.txt – landen direkt im Wurzelverzeichnis
-content/        posts.json + media/  →  das Journal (wird vom Telegram-Bot befüllt)
-netlify/        Journal-Bot (Telegram) als Netlify Function
+content/        posts.json + media/  →  Startinhalt des Journals (live liegt es in Netlify Blobs)
+netlify/        Journal-Bot (Telegram) und Live-Journal als Netlify Functions
 netlify.toml    Build-Einstellungen für Netlify
 build.mjs       node build.mjs  →  dist/
 ```
@@ -28,7 +28,7 @@ Dann http://localhost:8000 öffnen. (Direkt per Doppelklick auf die HTML-Datei g
    Die Build-Einstellungen kommen aus `netlify.toml` (Build `node build.mjs`, Ordner `dist`), nichts eintippen.
 3. Später unter **Domain management** `themeasure.watch` verbinden.
 
-Jeder Commit ins Repo, auch die vom Telegram-Bot, baut die Seite automatisch neu (etwa eine Minute).
+Jeder Commit ins Repo baut die Seite neu (kostet einen Deploy). Journal-Beiträge brauchen **keinen** Deploy: der Bot speichert sie in Netlify Blobs, die Seiten `/journal/…` werden live daraus erzeugt und gecacht.
 
 ## Journal per Telegram
 
@@ -40,29 +40,24 @@ Philipp schreibt dem Bot direkt, wie einem Kontakt.
 - `/neu` verwirft einen angefangenen Entwurf.
 - Fotos als normales Foto schicken (ideal fürs Web). Videos übernimmt der Bot nicht: auf YouTube/Vimeo laden und den Link in den Text schreiben.
 
-### Einrichtung (einmalig, ca. 15 Minuten)
+### Einrichtung (einmalig, ca. 10 Minuten)
 
 1. **Bot anlegen:** Telegram → @BotFather → `/newbot` → Name „The Measure Journal“, Benutzername z. B. `themeasure_journal_bot` → **Token** kopieren.
-2. **GitHub-Token:** github.com → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate.
-   Repository access: *Only select repositories* → `themeasure-website`. Permissions → Repository → **Contents: Read and write**. Ablauf: 1 Jahr (im Kalender notieren).
-3. **Netlify → Project configuration → Environment variables**, diese Werte anlegen:
+2. **Netlify → Project configuration → Environment variables**:
 
    | Name | Wert |
    |---|---|
    | `TELEGRAM_TOKEN` | Token aus Schritt 1 |
-   | `TELEGRAM_SECRET` | lange Zufallszeichenkette (z. B. von Claude erzeugt) |
-   | `GITHUB_TOKEN` | Token aus Schritt 2 |
-   | `GITHUB_REPO` | `bolavernes/themeasure-website` |
-   | `GITHUB_BRANCH` | `main` |
+   | `TELEGRAM_SECRET` | lange Zufallszeichenkette |
    | `SITE_URL` | die Netlify-Adresse, später `https://themeasure.watch` |
    | `ALLOWED_USER_IDS` | Telegram-IDs von Philipp und Bola, mit Komma getrennt |
 
    Danach **Deploys → Trigger deploy**, damit die Werte greifen.
-4. **Verbinden:** einmal im Browser öffnen: `https://<netlify-adresse>/api/telegram-setup?secret=<TELEGRAM_SECRET>`. Steht dort `"ok": true`, ist der Bot verbunden.
-5. **IDs:** Philipp und Bola schreiben dem Bot `/id`. Die Zahl bei `ALLOWED_USER_IDS` eintragen, neu deployen.
-6. Philipp schreibt `/hilfe` und schickt einen Testbeitrag.
+3. **Verbinden:** einmal im Browser öffnen: `https://<netlify-adresse>/api/telegram-setup?secret=<TELEGRAM_SECRET>`. Steht dort `"ok": true`, ist der Bot verbunden.
+4. **IDs:** Philipp und Bola schreiben dem Bot `/id`, die Zahlen bei `ALLOWED_USER_IDS` eintragen, neu deployen.
+5. Philipp schreibt `/hilfe` und schickt einen Testbeitrag.
 
-Kosten: GitHub, Netlify (Functions, Blobs) und Telegram sind in diesem Umfang kostenlos.
+Kosten: Telegram und Netlify Blobs/Functions in diesem Umfang praktisch null Credits. Nur Code-Änderungen (Commits) kosten je einen Deploy.
 
 ## Vor dem Livegang offen
 

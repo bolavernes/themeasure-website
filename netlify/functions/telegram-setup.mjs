@@ -19,5 +19,5 @@ export default async (req) => {
     { command: "hilfe", description: "So funktioniert's" }
   ] });
   const me = await tg("getMe", {});
-  return Response.json({ webhook: hook, commands: cmds.ok, bot: me.result && me.result.username, repo: env("GITHUB_REPO") || "FEHLT", site: env("SITE_URL") || "FEHLT", erlaubt: env("ALLOWED_USER_IDS") || "noch niemand" });
+  return Response.json({ webhook: hook, commands: cmds.ok, bot: me.result && me.result.username, site: env("SITE_URL") || "FEHLT", erlaubt: env("ALLOWED_USER_IDS") || "noch niemand" });
 };
