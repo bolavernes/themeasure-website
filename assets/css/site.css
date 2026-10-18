@@ -39,7 +39,10 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: hidden; }
+@supports (overflow-x: clip) { html, body { overflow-x: clip; } }
+/* nichts darf die Seite seitlich verbreitern (iOS: Wackeln und Spalt rechts) */
+main, .site-footer { overflow-x: clip; max-width: 100vw; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
 body {
@@ -156,6 +159,7 @@ main { position: relative; z-index: 2; background: var(--tm-paper); }
 .site-header[data-theme="paper"] { background: var(--tm-paper); color: var(--tm-black); }
 .site-header[data-theme="dark"] { background: var(--tm-black); color: var(--tm-paper); }
 .site-header.is-hidden { transform: translateY(-100%); }
+@media (max-width: 1099px) { .site-header[data-theme="hero"] { background: var(--tm-black); } }
 .brand { display: block; color: inherit; width: 156px; justify-self: center; }
 .brand svg { width: 100%; height: auto; }
 .nav { display: flex; gap: 34px; align-items: center; }
@@ -266,7 +270,7 @@ main { position: relative; z-index: 2; background: var(--tm-paper); }
 
 /* ---------- Hero ---------- */
 .hero { position: relative; height: 100vh; height: 100svh; min-height: 560px; overflow: hidden; background: var(--tm-black); color: var(--tm-paper); }
-.hero__media { position: absolute; inset: 0; }
+.hero__media { position: absolute; inset: 0; overflow: hidden; }
 .hero__media picture, .hero__media img { width: 100%; height: 100%; }
 .hero__media img { object-fit: cover; object-position: 50% 50%; }
 @media (min-width: 821px) { .hero__media img { transform: scale(1.12); transform-origin: 0% 60%; } }
@@ -456,7 +460,7 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
 .footer__main { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; }
 .footer__logo { grid-column: 1 / span 5; color: var(--tm-paper); }
 .footer__logo svg { width: min(100%, 360px); height: auto; }
-.footer__cols { grid-column: 7 / span 6; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px var(--gutter); font-size: 14px; }
+.footer__cols { grid-column: 7 / span 6; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px var(--gutter); font-size: 14px; overflow-wrap: anywhere; }
 .footer__label { font: 500 10px/1.4 var(--tm-font-head); letter-spacing: .28em; text-transform: uppercase; color: var(--tm-paper-dim); margin-bottom: 12px; }
 .footer__cols a { text-decoration: none; }
 .footer__cols a:hover { text-decoration: underline; color: var(--tm-paper); }
@@ -471,7 +475,7 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
   .site-footer .tm-minuterie { margin-bottom: 56px; }
   .footer__logo, .footer__cols { grid-column: 1 / -1; }
   .footer__logo { margin-bottom: 48px; }
-  .footer__cols { grid-template-columns: 1fr 1fr; }
+  .footer__cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 
 /* ---------- Unterseiten (Journal, Rechtliches) ---------- */
