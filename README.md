@@ -1,0 +1,74 @@
+# THE MEASURE – Website (themeasure.watch)
+
+Statische Website ohne Framework. Ein kleines Build-Script setzt Header, Footer und Journal zusammen und schreibt alles nach `dist/`.
+
+```
+src/            Seiten (index, impressum, datenschutz, 404)
+partials/       Header, Footer, Logo-Sprite (aus den Original-SVGs)
+assets/         CSS, JS (GSAP, ScrollTrigger, Lenis – selbst gehostet), Schriften (WOFF2), Bilder
+static/         Favicon, robots.txt – landen direkt im Wurzelverzeichnis
+content/        posts.json + media/  →  das Journal (wird vom Telegram-Bot befüllt)
+netlify/        Journal-Bot (Telegram) als Netlify Function
+netlify.toml    Build-Einstellungen für Netlify
+build.mjs       node build.mjs  →  dist/
+```
+
+## Lokal ansehen
+
+```
+node build.mjs
+cd dist && python3 -m http.server 8000
+```
+Dann http://localhost:8000 öffnen. (Direkt per Doppelklick auf die HTML-Datei geht nicht, weil die Pfade absolut sind.)
+
+## Online stellen (Netlify, mit GitHub verbunden)
+
+1. Dieses Repo liegt auf GitHub unter `bolavernes/themeasure-website`.
+2. Netlify → **Add new project → Import an existing project → GitHub** → `themeasure-website` wählen.
+   Die Build-Einstellungen kommen aus `netlify.toml` (Build `node build.mjs`, Ordner `dist`), nichts eintippen.
+3. Später unter **Domain management** `themeasure.watch` verbinden.
+
+Jeder Commit ins Repo, auch die vom Telegram-Bot, baut die Seite automatisch neu (etwa eine Minute).
+
+## Journal per Telegram
+
+Philipp schreibt dem Bot direkt, wie einem Kontakt.
+
+- **Einfügen:** Fotos auswählen (gern mehrere), Text dazuschreiben, senden. Die erste Zeile wird der Titel. Der Bot zeigt eine Vorschau → **Veröffentlichen**. Was nachgeschickt wird, landet im selben Entwurf.
+- **Bearbeiten:** auf die Bestätigung des Bots antworten, oder `/liste` → Beitrag → **Bearbeiten**. Neuer Text ersetzt den alten, neue Fotos kommen dazu. Vorschau → **Übernehmen**.
+- **Löschen:** `/liste` → Beitrag → **Löschen** → bestätigen.
+- `/neu` verwirft einen angefangenen Entwurf.
+- Fotos als normales Foto schicken (ideal fürs Web). Videos übernimmt der Bot nicht: auf YouTube/Vimeo laden und den Link in den Text schreiben.
+
+### Einrichtung (einmalig, ca. 15 Minuten)
+
+1. **Bot anlegen:** Telegram → @BotFather → `/newbot` → Name „The Measure Journal“, Benutzername z. B. `themeasure_journal_bot` → **Token** kopieren.
+2. **GitHub-Token:** github.com → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate.
+   Repository access: *Only select repositories* → `themeasure-website`. Permissions → Repository → **Contents: Read and write**. Ablauf: 1 Jahr (im Kalender notieren).
+3. **Netlify → Project configuration → Environment variables**, diese Werte anlegen:
+
+   | Name | Wert |
+   |---|---|
+   | `TELEGRAM_TOKEN` | Token aus Schritt 1 |
+   | `TELEGRAM_SECRET` | lange Zufallszeichenkette (z. B. von Claude erzeugt) |
+   | `GITHUB_TOKEN` | Token aus Schritt 2 |
+   | `GITHUB_REPO` | `bolavernes/themeasure-website` |
+   | `GITHUB_BRANCH` | `main` |
+   | `SITE_URL` | die Netlify-Adresse, später `https://themeasure.watch` |
+   | `ALLOWED_USER_IDS` | Telegram-IDs von Philipp und Bola, mit Komma getrennt |
+
+   Danach **Deploys → Trigger deploy**, damit die Werte greifen.
+4. **Verbinden:** einmal im Browser öffnen: `https://<netlify-adresse>/api/telegram-setup?secret=<TELEGRAM_SECRET>`. Steht dort `"ok": true`, ist der Bot verbunden.
+5. **IDs:** Philipp und Bola schreiben dem Bot `/id`. Die Zahl bei `ALLOWED_USER_IDS` eintragen, neu deployen.
+6. Philipp schreibt `/hilfe` und schickt einen Testbeitrag.
+
+Kosten: GitHub, Netlify (Functions, Blobs) und Telegram sind in diesem Umfang kostenlos.
+
+## Vor dem Livegang offen
+
+- Webfont-Lizenz (Pangram Pangram) für PP Frama / PP Playground im Web.
+- Impressum und Datenschutz: Firmendaten und Hoster eintragen (`src/impressum.html`, `src/datenschutz.html`, Stellen mit „[ergänzen]“), Datenschutz prüfen lassen.
+- Mailadresse auf philipp@themeasure.watch umgestellt (Schreibweise immer „Philipp“). Prüfen, dass das Postfach so existiert.
+- „Über den Start informiert werden“ öffnet derzeit eine Mail. Für eine echte Liste: Newsletter-Tool (z. B. Brevo) anbinden.
+- Fotos: Josef Bar, Philipp, Vitrinen, Uhren. Bildplätze sind vorbereitet (`assets/img/`).
+- Favicon: aus LOGO/theMEASURE_favicon.svg (hell/dunkel-Variante im SVG).
