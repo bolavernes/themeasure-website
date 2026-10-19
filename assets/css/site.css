@@ -515,7 +515,7 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
 /* Autor und Teilen */
 .card__by { margin-top: 12px; font-size: 12px !important; letter-spacing: .04em; color: var(--tm-stone) !important; }
 .post-byline { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--tm-stone-text); }
-.post-byline__share, button.more { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.post-byline__share, button.more { background: none; border: 0; padding-inline: 0; color: inherit; cursor: pointer; }
 .post-byline__share { font: 500 11px/1 var(--tm-font-head); letter-spacing: .18em; text-transform: uppercase; color: var(--tm-black); padding: 8px 0; }
 .post-byline__share i { font-style: normal; margin-left: 4px; }
 @media (hover: hover) { .post-byline__share:hover { opacity: .6; } }
@@ -543,3 +543,12 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
   html.motion .lines.is-in .line > span { transform: none; transition: transform 1200ms var(--ease-out); transition-delay: calc(var(--i, 0) * 120ms); }
 }
 .lines .line { display: block; }
+
+/* Größere Tap-Ziele am Handy (Shipcheck): sichtbar gleich, nur die Klickfläche wächst */
+@media (max-width: 820px) {
+  .brand { padding-block: 14px; }
+  .more { padding-block: 11px; }
+  .back { padding-block: 14px; margin-bottom: 34px; }
+  .site-footer a { display: inline-block; padding-block: 7px; }
+  .footer__bottom nav a { padding-block: 12px; }
+}
