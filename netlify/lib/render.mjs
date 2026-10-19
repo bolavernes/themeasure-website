@@ -19,10 +19,13 @@ export function card(p, i = 0, tag = "h3") {
 </a>`;
 }
 
-export function page(html, tpl, { headerTheme = "paper", journalCurrent = false } = {}) {
+export function page(html, tpl, { headerTheme = "paper", journalCurrent = false, lang = "de", deHref = "/", enHref = "/en/" } = {}) {
+  const cur = ' aria-current="true"';
   const header = tpl.header
     .replace("{{HEADER_THEME}}", headerTheme)
-    .replace("{{JOURNAL_CURRENT}}", journalCurrent ? ' aria-current="page"' : "");
+    .replace("{{JOURNAL_CURRENT}}", journalCurrent ? ' aria-current="page"' : "")
+    .replace("{{LANG_DE_HREF}}", deHref).replace("{{LANG_EN_HREF}}", enHref)
+    .replace("{{LANG_DE_CUR}}", lang === "de" ? cur : "").replace("{{LANG_EN_CUR}}", lang === "en" ? cur : "");
   return html
     .replace("{{HEAD_COMMON}}", tpl.head)
     .replace("{{SPRITE}}", tpl.sprite)
@@ -77,7 +80,7 @@ export function journalIndexHtml(posts, tpl, site) {
     ${posts.length ? `<div class="cards">\n${posts.map((p, i) => card(p, i % 3, "h2")).join("\n")}\n</div>` : `<p class="empty-note">Die ersten Beiträge erscheinen hier in Kürze.</p>`}
   </div>
 </section>`
-  }), tpl, { journalCurrent: true });
+  }), tpl, { journalCurrent: true, deHref: "/journal/" });
 }
 
 export function postHtml(p, tpl, site) {
@@ -105,5 +108,5 @@ export function postHtml(p, tpl, site) {
     ${rest.length ? `<div class="post-gallery">${rest.map((im) => `<figure><div class="frame"><img src="${esc(im.src)}" alt="${esc(im.alt || p.title)}" width="${im.width || 1200}" height="${im.height || 900}" loading="lazy"></div></figure>`).join("")}</div>` : ""}
   </div>
 </article>`
-  }), tpl, { journalCurrent: true });
+  }), tpl, { journalCurrent: true, deHref: `/journal/${p.slug}/` });
 }

@@ -49,10 +49,14 @@
 
   /* ---------- Footer-Uhr: zuerst die Zeit, wo man die Seite gerade ansieht, daneben Wien ---------- */
   var CITY_DE = { Vienna: "Wien", Rome: "Rom", Prague: "Prag", Warsaw: "Warschau", Moscow: "Moskau", Lisbon: "Lissabon", Copenhagen: "Kopenhagen", Brussels: "Brüssel", Athens: "Athen", Bucharest: "Bukarest", Belgrade: "Belgrad", Zurich: "Zürich", Kiev: "Kiew", Kyiv: "Kiew", Luxembourg: "Luxemburg", Nicosia: "Nikosia", Sofia: "Sofia", Tallinn: "Tallinn", Vilnius: "Vilnius", Riga: "Riga", Mexico_City: "Mexiko-Stadt", Tokyo: "Tokio", Singapore: "Singapur", Calcutta: "Kalkutta", Kolkata: "Kalkutta" };
+  var EN = document.documentElement.lang === "en";
+  var T = EN
+    ? { vienna: "Vienna", yourTime: "Your time", open: "Open until 3 am", opens: "Opens today at 6 pm", menu: "Menu", close: "Close" }
+    : { vienna: "Wien", yourTime: "Deine Zeit", open: "Geöffnet bis 3 Uhr", opens: "Öffnet heute um 18 Uhr", menu: "Menü", close: "Schließen" };
   function cityFromZone(tz) {
-    if (!tz || tz.indexOf("/") < 0) return "Deine Zeit";
+    if (!tz || tz.indexOf("/") < 0) return T.yourTime;
     var c = tz.split("/").pop();
-    return CITY_DE[c] || c.replace(/_/g, " ");
+    return (!EN && CITY_DE[c]) || c.replace(/_/g, " ");
   }
   function timeIn(tz) {
     try {
@@ -70,7 +74,7 @@
   var clockEl = document.querySelector("[data-clock]");
   var clock = clockEl ? minuterie(clockEl, null) : null;
   if (zones) {
-    zones.querySelector("[data-zone-local-name]").textContent = inVienna ? "Wien" : cityFromZone(localZone);
+    zones.querySelector("[data-zone-local-name]").textContent = inVienna ? T.vienna : cityFromZone(localZone);
     if (inVienna) {
       zones.querySelector("[data-zone-vienna]").remove();
       zones.querySelector(".zone--left").classList.add("zone--single");
@@ -89,7 +93,7 @@
     if (barStatus) {
       var open = vie.h >= 18 || vie.h < 3;
       barStatus.classList.toggle("is-closed", !open);
-      barStatus.lastElementChild.textContent = open ? "Geöffnet bis 3 Uhr" : "Öffnet heute um 18 Uhr";
+      barStatus.lastElementChild.textContent = open ? T.open : T.opens;
     }
   }
   tick(); setInterval(tick, 15000);
@@ -100,7 +104,7 @@
   var menu = document.getElementById("mobile-menu");
   function closeMenu() {
     root.classList.remove("menu-open");
-    if (toggle) { toggle.setAttribute("aria-expanded", "false"); toggle.querySelector(".label").textContent = "Menü"; }
+    if (toggle) { toggle.setAttribute("aria-expanded", "false"); toggle.querySelector(".label").textContent = T.menu; }
     if (window.__lenis) window.__lenis.start();
   }
   if (toggle && menu) {
@@ -108,7 +112,7 @@
       var open = !root.classList.contains("menu-open");
       root.classList.toggle("menu-open", open);
       toggle.setAttribute("aria-expanded", String(open));
-      toggle.querySelector(".label").textContent = open ? "Schließen" : "Menü";
+      toggle.querySelector(".label").textContent = open ? T.close : T.menu;
       if (window.__lenis) { open ? window.__lenis.stop() : window.__lenis.start(); }
     });
     menu.addEventListener("click", function (e) { if (e.target.closest("a")) closeMenu(); });

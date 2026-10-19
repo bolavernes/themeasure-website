@@ -10,11 +10,16 @@
     <a class="brand" href="/" aria-label="THE MEASURE – Startseite">
       <svg viewBox="1.3 0.3 194.5 24.1" fill="currentColor" role="img" aria-label="THE MEASURE"><use href="#logo-small"/></svg>
     </a>
-    <nav class="nav nav--right" aria-label="Weitere Navigation">
-      <a href="/journal/" data-nav="journal"{{JOURNAL_CURRENT}}>Journal</a>
-      <a href="/#josef" data-nav="josef">Josef Bar</a>
-      <a href="/#kontakt" data-nav="kontakt">Kontakt</a>
-    </nav>
+    <div class="header__end">
+      <nav class="nav nav--right" aria-label="Weitere Navigation">
+        <a href="/journal/" data-nav="journal"{{JOURNAL_CURRENT}}>Journal</a>
+        <a href="/#josef" data-nav="josef">Josef Bar</a>
+        <a href="/#kontakt" data-nav="kontakt">Kontakt</a>
+      </nav>
+      <div class="lang" role="group" aria-label="Sprache / Language">
+        <a href="{{LANG_DE_HREF}}" hreflang="de" lang="de" aria-label="Deutsch"{{LANG_DE_CUR}}>DE</a><a href="{{LANG_EN_HREF}}" hreflang="en" lang="en" aria-label="English"{{LANG_EN_CUR}}>EN</a>
+      </div>
+    </div>
   </div>
 </header>
 <div class="mobile-menu" id="mobile-menu" aria-label="Menü">

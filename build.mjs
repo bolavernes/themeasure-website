@@ -74,12 +74,24 @@ const latest = posts.slice(0, 3);
 index = index.replace("<!--JOURNAL-CARDS-->", `<div class="cards" data-journal-cards>\n${latest.map((p, i) => card(p, i)).join("\n")}\n</div>`);
 out("index.html", page(index, { headerTheme: "hero" }));
 
+/* ---------- Englische Startseite: deutsche Seite + Übersetzungen aus content/en.json ----------
+   Jeder deutsche Text muss genau so in der Seite vorkommen. Fehlt einer (weil der deutsche Text
+   geändert wurde), bricht der Build ab, damit die englische Seite nie halb deutsch online geht. */
+let en = page(index, { headerTheme: "hero", lang: "en" });
+const missing = [];
+for (const [de, eng] of JSON.parse(read("content/en.json"))) {
+  if (!en.includes(de)) { missing.push(de.slice(0, 70)); continue; }
+  en = en.split(de).join(eng);
+}
+if (missing.length) throw new Error("content/en.json – nicht mehr in der Seite gefunden:\n  " + missing.join("\n  "));
+out("en/index.html", en);
+
 /* ---------- Weitere Seiten aus src/ ---------- */
 for (const f of readdirSync(join(ROOT, "src"))) {
   if (f === "index.html" || !f.endsWith(".html")) continue;
   const name = f.replace(/\.html$/, "");
   const target = name === "404" ? "404.html" : `${name}/index.html`;
-  out(target, page(read(`src/${f}`)));
+  out(target, page(read(`src/${f}`), { deHref: name === "404" ? "/" : `/${name}/` }));
 }
 
 /* ---------- Journal (statische Vorschau; live rendert die Netlify Function) ---------- */
@@ -89,7 +101,7 @@ for (const p of posts) out(`journal/${p.slug}/index.html`, postHtml(p, TPL, SITE
 /* ---------- Sitemap ---------- */
 const today = new Date().toISOString().slice(0, 10);
 const urls = [
-  [`${SITE}/`, today], [`${SITE}/journal/`, posts[0]?.date || today],
+  [`${SITE}/`, today], [`${SITE}/en/`, today], [`${SITE}/journal/`, posts[0]?.date || today],
   ...posts.map((p) => [`${SITE}/journal/${p.slug}/`, p.date]),
   [`${SITE}/impressum/`, today], [`${SITE}/datenschutz/`, today]
 ];

@@ -67,3 +67,9 @@ Kosten: Telegram und Netlify Blobs/Functions in diesem Umfang praktisch null Cre
 - „Über den Start informiert werden“ öffnet derzeit eine Mail. Für eine echte Liste: Newsletter-Tool (z. B. Brevo) anbinden.
 - Fotos: Josef Bar, Philipp, Vitrinen, Uhren. Bildplätze sind vorbereitet (`assets/img/`).
 - Favicon: aus LOGO/theMEASURE_favicon.svg (hell/dunkel-Variante im SVG).
+
+## Englische Version (/en/)
+
+Die englische Startseite wird beim Build aus der deutschen erzeugt: `content/en.json` enthält Paare aus deutschem und englischem Text.
+Ändert sich ein deutscher Text auf der Startseite, muss das Paar in `content/en.json` mit angepasst werden, sonst bricht der Build mit einer Liste der fehlenden Texte ab.
+Journal, Impressum und Datenschutz bleiben deutsch. Die Sprachwahl DE / EN sitzt rechts im Header.
