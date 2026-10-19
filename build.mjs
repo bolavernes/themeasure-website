@@ -11,6 +11,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { card, journalIndexHtml, postHtml, page as renderPage, sortPosts } from "./netlify/lib/render.mjs";
 
@@ -48,10 +49,19 @@ const page = (html, opts) => renderPage(html, TPL, opts);
 writeFileSync(join(ROOT, "netlify/lib/templates.generated.mjs"),
   "// Automatisch erzeugt von build.mjs. Nicht von Hand ändern.\nexport default " + JSON.stringify(TPL) + ";\n"
   + "export const seed = " + read("content/posts.json").trim() + ";\n");
+/* Bilder bekommen ?v=<Inhalt-Hash>: neues Foto unter gleichem Namen = neue Adresse,
+   damit Browser nicht eine Woche lang das alte aus dem Cache zeigen. */
+const hashes = {};
+const bust = (html) => html.replace(/\/assets\/img\/[\w.-]+\.(?:jpe?g|png|webp|avif|svg)(?![\w?])/g, (url) => {
+  const f = join(ROOT, url.slice(1));
+  if (!existsSync(f)) return url;
+  hashes[url] ||= createHash("sha1").update(readFileSync(f)).digest("hex").slice(0, 8);
+  return `${url}?v=${hashes[url]}`;
+});
 function out(path, html) {
   const file = join(DIST, path);
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, html);
+  writeFileSync(file, path.endsWith(".html") ? bust(html) : html);
 }
 
 /* ---------- Inhalte ---------- */
