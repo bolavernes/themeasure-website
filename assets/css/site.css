@@ -474,7 +474,7 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
 .footer__main { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; }
 .footer__logo { grid-column: 1 / span 5; color: var(--tm-paper); }
 .footer__logo svg { width: min(100%, 360px); height: auto; }
-.footer__cols { grid-column: 7 / span 6; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px var(--gutter); font-size: 14px; overflow-wrap: anywhere; }
+.footer__cols { grid-column: 7 / span 6; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px var(--gutter); font-size: 14px; overflow-wrap: break-word; }
 .footer__label { font: 500 10px/1.4 var(--tm-font-head); letter-spacing: .28em; text-transform: uppercase; color: var(--tm-paper-dim); margin-bottom: 12px; }
 .footer__cols a { text-decoration: none; }
 .footer__cols a:hover { text-decoration: underline; color: var(--tm-paper); }
@@ -512,6 +512,17 @@ html.motion .steps-h { height: 100vh; margin-top: 64px; display: flex; flex-dire
 .post-gallery { margin-top: 80px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
 .post-gallery figure:only-child { grid-column: 1 / -1; }
 .post-gallery img { width: 100%; height: auto; }
+/* Autor und Teilen */
+.card__by { margin-top: 12px; font-size: 12px !important; letter-spacing: .04em; color: var(--tm-stone) !important; }
+.post-byline { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--tm-stone-text); }
+.post-byline__share, button.more { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.post-byline__share { font: 500 11px/1 var(--tm-font-head); letter-spacing: .18em; text-transform: uppercase; color: var(--tm-black); padding: 8px 0; }
+.post-byline__share i { font-style: normal; margin-left: 4px; }
+@media (hover: hover) { .post-byline__share:hover { opacity: .6; } }
+.share { margin-top: 96px; padding-top: 40px; border-top: 1px solid var(--tm-line); display: grid; justify-items: center; gap: 22px; text-align: center; }
+.share__buttons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 28px; }
+.share__buttons .tm-button[disabled] { opacity: .6; cursor: progress; }
+.share__note { font-size: 13px; color: var(--tm-stone-text); max-width: 34em; }
 .back { display: inline-flex; gap: 10px; font: 500 11px/1 var(--tm-font-head); letter-spacing: .18em; text-transform: uppercase; text-decoration: none; margin-bottom: 48px; }
 .empty-note { margin-top: 72px; padding: 32px 0; color: var(--tm-stone-text); }
 @media (max-width: 820px) {

@@ -7,6 +7,8 @@ export const paragraphs = (body = "") => body.trim() ? body.trim().split(/\n\s*\
 const months = ["Jänner", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 export const fmtDate = (iso) => { const [y, m, d] = iso.split("-").map(Number); return `${d}. ${months[m - 1]} ${y}`; };
 export const excerpt = (p) => { const t = (p.excerpt || p.body || "").replace(/\s+/g, " ").trim(); return t.length > 150 ? t.slice(0, t.lastIndexOf(" ", 147)) + " …" : t; };
+export const AUTHOR = "Philipp M. Ernst";
+const authorOf = (p) => p.author || AUTHOR;
 export const sortPosts = (posts) => (posts || []).filter((p) => !p.hidden).sort((a, b) => (b.date + (b.time || "")).localeCompare(a.date + (a.time || "")));
 
 export function card(p, i = 0, tag = "h3") {
@@ -16,6 +18,7 @@ export function card(p, i = 0, tag = "h3") {
   <p class="tm-overline">Journal · ${fmtDate(p.date)}</p>
   <${tag} class="h3">${esc(p.title)}</${tag}>
   <p>${esc(excerpt(p))}</p>
+  <p class="card__by">${esc(authorOf(p))}</p>
 </a>`;
 }
 
@@ -34,7 +37,7 @@ export function page(html, tpl, { headerTheme = "paper", journalCurrent = false,
     .replace("{{SCRIPTS}}", tpl.scripts);
 }
 
-function shell({ title, description, canonical, ogImage, body, jsonld = "", type = "article" }) {
+function shell({ title, description, canonical, ogImage, body, jsonld = "", type = "article", author = "" }) {
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -49,6 +52,7 @@ function shell({ title, description, canonical, ogImage, body, jsonld = "", type
 <meta property="og:url" content="${canonical}">
 <meta property="og:image" content="${ogImage}">
 <meta name="twitter:card" content="summary_large_image">
+${author ? `<meta name="author" content="${esc(author)}">` : ""}
 {{HEAD_COMMON}}
 ${jsonld}
 </head>
@@ -90,7 +94,7 @@ export function postHtml(p, tpl, site) {
   const jsonld = `<script type="application/ld+json">${JSON.stringify({
     "@context": "https://schema.org", "@type": "BlogPosting", headline: p.title, datePublished: p.date,
     ...(p.updated ? { dateModified: p.updated } : {}),
-    author: { "@type": "Person", name: p.author || "Philipp M. Ernst" }, publisher: { "@type": "Organization", name: "The Measure" },
+    author: { "@type": "Person", name: authorOf(p) }, publisher: { "@type": "Organization", name: "The Measure" },
     image: cover ? abs(cover.src) : undefined, mainEntityOfPage: url
   }).replace(/</g, "\\u003c")}</script>`;
   return page(shell({
@@ -99,13 +103,24 @@ export function postHtml(p, tpl, site) {
     canonical: url,
     ogImage: cover ? abs(cover.src) : `${site}/assets/img/og.jpg`,
     jsonld,
-    body: `<article class="section tm-paper page-top">
+    author: authorOf(p),
+    body: `<article class="section tm-paper page-top" data-share data-url="${url}" data-title="${esc(p.title)}" data-date="${fmtDate(p.date)}" data-author="${esc(authorOf(p))}" data-slug="${esc(p.slug)}" data-img="${cover ? esc(cover.src) : ""}">
   <div class="wrap">
     <a class="back" href="/journal/">← Journal</a>
-    <div class="grid"><div class="page-title"><p class="tm-overline">${fmtDate(p.date)}</p><h1>${esc(p.title)}</h1></div></div>
+    <div class="grid"><div class="page-title"><p class="tm-overline">${fmtDate(p.date)}</p><h1>${esc(p.title)}</h1>
+      <div class="post-byline"><span>Von ${esc(authorOf(p))}</span><button class="post-byline__share" type="button" data-share-link>Teilen <i aria-hidden="true">↗</i></button></div>
+    </div></div>
     ${cover ? `<figure class="post-hero"><div class="frame" data-shutter><img src="${esc(cover.src)}" alt="${esc(cover.alt || p.title)}" width="${cover.width || 1600}" height="${cover.height || 1067}"></div></figure>` : ""}
     ${p.body ? `<div class="post-body"><div class="prose">${paragraphs(p.body)}</div></div>` : ""}
     ${rest.length ? `<div class="post-gallery">${rest.map((im) => `<figure><div class="frame"><img src="${esc(im.src)}" alt="${esc(im.alt || p.title)}" width="${im.width || 1200}" height="${im.height || 900}" loading="lazy"></div></figure>`).join("")}</div>` : ""}
+    <div class="share">
+      <p class="tm-overline">Beitrag teilen</p>
+      <div class="share__buttons">
+        <button class="tm-button" type="button" data-share-story>Als Instagram-Story teilen</button>
+        <button class="more" type="button" data-share-link><i aria-hidden="true">↗</i>Link teilen</button>
+      </div>
+      <p class="share__note" data-share-note role="status" hidden></p>
+    </div>
   </div>
 </article>`
   }), tpl, { journalCurrent: true, deHref: `/journal/${p.slug}/` });

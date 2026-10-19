@@ -401,5 +401,104 @@
     });
   });
 
+  /* ---------- Journal: Teilen und Instagram-Story-Bild ----------
+     "Link teilen" öffnet am Handy das Teilen-Menü (sonst Link kopieren).
+     "Als Instagram-Story teilen" zeichnet ein 1080×1920-Bild (Foto, Titel, Autor, Logo) und teilt es
+     als Datei. Das Bild wird vorab erzeugt, damit der Klick sofort das Teilen-Menü öffnen darf. */
+  document.querySelectorAll("[data-share]").forEach(function (box) {
+    var d = box.dataset, note = box.querySelector("[data-share-note]"), timer;
+    function say(t) { if (!note) return; note.textContent = t; note.hidden = false; clearTimeout(timer); timer = setTimeout(function () { note.hidden = true; }, 7000); }
+    function copy(text) { try { return navigator.clipboard.writeText(text); } catch (e) { return Promise.reject(e); } }
+
+    box.querySelectorAll("[data-share-link]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (navigator.share) { navigator.share({ title: d.title + " – The Measure", url: d.url }).catch(function () {}); return; }
+        copy(d.url).then(function () { say("Link kopiert."); }, function () { say(d.url); });
+      });
+    });
+
+    function loadImg(src) {
+      return new Promise(function (res, rej) { var i = new Image(); i.decoding = "async"; i.onload = function () { res(i); }; i.onerror = rej; i.src = src; });
+    }
+    function wrap(ctx, text, max, maxLines) {
+      var words = text.split(/\s+/), lines = [], line = "";
+      words.forEach(function (w) { var t = line ? line + " " + w : w; if (ctx.measureText(t).width > max && line) { lines.push(line); line = w; } else line = t; });
+      if (line) lines.push(line);
+      if (lines.length > maxLines) { lines = lines.slice(0, maxLines); var l = lines[maxLines - 1]; while (ctx.measureText(l + " …").width > max && l.indexOf(" ") > 0) l = l.slice(0, l.lastIndexOf(" ")); lines[maxLines - 1] = l + " …"; }
+      return lines;
+    }
+    function storyImage() {
+      var W = 1080, H = 1920, PH = 1300, L = 96;
+      var sym = document.getElementById("logo-full");
+      var logoSrc = sym ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -0.8 324.2 100.8" fill="#FAF9F5">' + sym.innerHTML + "</svg>") : null;
+      return Promise.all([
+        document.fonts ? document.fonts.load('500 76px "PP Frama"') : null,
+        document.fonts ? document.fonts.load('400 30px "PP Frama Text"') : null,
+        d.img ? loadImg(d.img).catch(function () { return null; }) : null,
+        logoSrc ? loadImg(logoSrc).catch(function () { return null; }) : null
+      ]).then(function (r) {
+        var photo = r[2], logo = r[3];
+        var c = document.createElement("canvas"); c.width = W; c.height = H;
+        var x = c.getContext("2d");
+        x.fillStyle = "#232323"; x.fillRect(0, 0, W, H);
+        if (photo) {
+          var s = Math.max(W / photo.naturalWidth, PH / photo.naturalHeight), w = photo.naturalWidth * s, h = photo.naturalHeight * s;
+          x.drawImage(photo, (W - w) / 2, (PH - h) / 2, w, h);
+          var g = x.createLinearGradient(0, 0, 0, 480); g.addColorStop(0, "rgba(35,35,35,.8)"); g.addColorStop(1, "rgba(35,35,35,0)"); x.fillStyle = g; x.fillRect(0, 0, W, 480);
+          g = x.createLinearGradient(0, PH - 420, 0, PH); g.addColorStop(0, "rgba(35,35,35,0)"); g.addColorStop(1, "#232323"); x.fillStyle = g; x.fillRect(0, PH - 420, W, 420);
+        }
+        if (logo) { var lw = 340; x.drawImage(logo, (W - lw) / 2, 250, lw, lw * 100.8 / 324.2); }
+        // Text von unten nach oben aufbauen, damit unten Platz für Instagram bleibt
+        x.textBaseline = "alphabetic";
+        x.font = '500 76px "PP Frama", "Helvetica Neue", Arial, sans-serif';
+        var lines = wrap(x, d.title, W - 2 * L, 4);
+        var by = 1610, ty = by - 74 - (lines.length - 1) * 86, oy = ty - 104;
+        x.fillStyle = "#FAF9F5"; x.fillRect(L, oy - 22, 3, 24);
+        x.font = '400 26px "PP Frama Text", "Helvetica Neue", Arial, sans-serif';
+        if ("letterSpacing" in x) x.letterSpacing = "5px";
+        x.fillStyle = "#C9C5BA"; x.fillText(("Journal · " + d.date).toUpperCase(), L + 22, oy);
+        if ("letterSpacing" in x) x.letterSpacing = "0px";
+        x.font = '500 76px "PP Frama", "Helvetica Neue", Arial, sans-serif'; x.fillStyle = "#FAF9F5";
+        lines.forEach(function (l, i) { x.fillText(l, L, ty + i * 86); });
+        x.font = '400 30px "PP Frama Text", "Helvetica Neue", Arial, sans-serif'; x.fillStyle = "#C9C5BA";
+        x.fillText(d.author, L, by);
+        // Minuterie als Abschluss
+        x.fillStyle = "rgba(250,249,245,.35)";
+        for (var k = 0; k <= 60; k++) { var tx = L + k * (W - 2 * L) / 60, th = k % 5 ? 10 : 22; x.fillRect(tx, 1648, 2, th); }
+        return new Promise(function (res) { c.toBlob(res, "image/png"); });
+      });
+    }
+
+    var storyBtn = box.querySelector("[data-share-story]"), ready = null;
+    if (!storyBtn) return;
+    function prepare() { if (!ready) ready = storyImage().then(function (blob) { return new File([blob], (d.slug || "the-measure") + "-story.png", { type: "image/png" }); }); return ready; }
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { prepare(); io.disconnect(); } }, { rootMargin: "600px" });
+      io.observe(storyBtn);
+    }
+    var file = null;
+    storyBtn.addEventListener("pointerenter", prepare);
+    storyBtn.addEventListener("click", function () {
+      var go = function (f) {
+        copy(d.url).catch(function () {});
+        if (navigator.canShare && navigator.canShare({ files: [f] })) {
+          navigator.share({ files: [f] }).then(function () {
+            say("In Instagram oben den Link-Sticker antippen und den Link einfügen, er ist schon kopiert.");
+          }).catch(function () {});
+        } else {
+          var a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+          document.body.appendChild(a); a.click(); a.remove();
+          say("Story-Bild gespeichert. Am Handy kannst du es direkt mit Instagram teilen. Link: " + d.url);
+        }
+      };
+      if (file) return go(file);
+      var label = storyBtn.textContent; storyBtn.disabled = true; storyBtn.textContent = "Bild wird erstellt …";
+      prepare().then(function (f) { file = f; storyBtn.disabled = false; storyBtn.textContent = label; go(f); }, function () {
+        storyBtn.disabled = false; storyBtn.textContent = label; say("Das Bild konnte nicht erstellt werden.");
+      });
+    });
+    prepare().then(function (f) { file = f; }, function () {});
+  });
+
   window.addEventListener("load", function () { ScrollTrigger.refresh(); });
 })();
