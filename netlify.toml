@@ -3,10 +3,13 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# SITE_URL ist die öffentliche Adresse der Seite, kein Geheimnis: vom Secret-Scan ausnehmen
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "SITE_URL"
+
 [functions]
   node_bundler = "esbuild"
 
-# Inhalte, die der Bot schreibt, lösen einen neuen Build aus. Nichts weiter zu tun.
 
 [[headers]]
   for = "/*"
