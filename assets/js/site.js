@@ -415,7 +415,7 @@
     var img = box.querySelector("img"), txt = box.querySelector("[data-parallax-text]");
     var st = { trigger: box, start: "top bottom", end: "bottom top", scrub: true };
     if (img) gsap.fromTo(img, { yPercent: -9 }, { yPercent: 9, ease: "none", scrollTrigger: st });
-    if (txt) gsap.fromTo(txt, { y: 60 }, { y: -40, ease: "none", scrollTrigger: { trigger: box, start: "top bottom", end: "bottom top", scrub: true } });
+    if (txt && desktop.matches) gsap.fromTo(txt, { y: 60 }, { y: -40, ease: "none", scrollTrigger: { trigger: box, start: "top bottom", end: "bottom top", scrub: true } });
   });
 
   /* ---------- Drei Schritte: beim Scrollen nach rechts (Desktop), mobil wischen ---------- */
